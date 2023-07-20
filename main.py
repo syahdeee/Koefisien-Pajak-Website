@@ -3,7 +3,7 @@ from streamlit_option_menu import option_menu
 
 #navigasi
 with st.sidebar:
-    selected = option_menu("Main Menu", ["Home", 'Prediksi Rating'])
+    selected = option_menu("MENU", ["Home", 'Prediksi Rating'])
     selected
 
 if (selected == 'Home'):
