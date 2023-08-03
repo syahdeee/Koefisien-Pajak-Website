@@ -3,3 +3,4 @@ streamlit-option-menu
 scikit-learn
 keras-models
 pandas
+tensorflow
