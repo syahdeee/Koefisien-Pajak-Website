@@ -1,7 +1,5 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-import tensorflow as tf
-import tensorflow_addons as tfa
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 import pandas as pd
