@@ -1,10 +1,16 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+import tensorflow as tf
+import tensorflow_addons as tfa
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import load_model
+import pandas as pd
+
 
 def home():
     # st.sidebar.title(f"Hello {nama}")
     with st.sidebar:
-        selected = option_menu(None, ["Home", 'Prediksi', "Optimasi Hyperparameter"],
+        selected = option_menu(None, ["Home", 'Prediksi', "Optimasi dan Learning"],
         icons=['house', 'graph-up', 'gear-fill'], menu_icon="cast", default_index=0)
 
     if (selected == 'Home'):
@@ -14,27 +20,108 @@ def home():
         st.markdown("<h6 style=''>By : PSTB - BRIN team</h6>", unsafe_allow_html=True)
 
     if (selected == 'Prediksi'):
+        selected_option = st.sidebar.radio("Pilih metode prediksi :", ("By script", "By ML"))
         with st.container():
             st.markdown("<h5 style='text-align : center;'>Prediksi Koefisien Pajak Bahan Bakar Diesel/Gasoline</h5>", unsafe_allow_html=True)
             ## horizontal Menu
             selected2 = option_menu(None, ["Diesel", "Gasoline"], 
             icons=['fuel-pump-diesel', 'fuel-pump'], 
-            menu_icon="cast", default_index=0, orientation="horizontal")
+            menu_icon="cast", default_index=  0, orientation="horizontal")
                 
-            if (selected2 == "Diesel"):
-                opasitas = st.number_input("Opasitas kendaraan (angka 0 - 100):", 0)
-                tahun = st.number_input("Tahun Pembuatan kendaraan (s/d 2023):", 0)
-                hasilD = tahun+opasitas
-                hitungD = st.button("PREDIKSI", hasilD)
+            if (selected2 == "Diesel" and selected_option == "By ML"):
+                tahun = st.number_input("Tahun Pembuatan kendaraan (s/d 2023):")
+                opasitas = st.number_input("Opasitas kendaraan (angka 0 - 100):")
+                usia = st.number_input("Usia Kendaraan:")
+                
+                # Membuat dictionary dengan data awal
+                data = {
+                    'tahun' : [0, 2023],
+                    'opasitas': [0, 100],
+                    'usia': [0, 73],
+                }
+
+                # Membuat data frame
+                dfx = pd.DataFrame(data)
+                new = {'tahun': tahun, 'opasitas': opasitas, 'usia': usia}
+                # Append the new row to the data frame
+                dfx = dfx.append(new, ignore_index=True)
+                
+                #Normalisasi data uji
+                # Create an instance of the StandardScaler
+                scaler = MinMaxScaler()
+
+                # Fit the scaler to the data
+                scaler.fit(dfx)
+
+                # Transform the data
+                x_scaled = scaler.transform(dfx)
+
+                dfy = pd.DataFrame({'regrating': [0, 6]})
+                # Fit the scaler to the data
+                scaler.fit(dfy)
+                
+                # Load the model
+                model_path = 'D:\KP\Pelaksanaan\KEGIATAN KP\WEBSITE\Koefisien-Pajak-Website\model\model_diesel.h5'
+                model_diesel = load_model(model_path)
+                
+                #prediksi data
+                y_model_test = model_diesel.predict(x_scaled)
+                
+                #inverse ke nilai normal
+                y_test_denorm = scaler.inverse_transform(y_model_test)
+                hasilD = y_test_denorm[-1][0]
+                
+                hitungD = st.button("PREDIKSI")
                 if hitungD:
                     st.write("Hasil prediksi nilai rating bahan bakar diesel : ", hasilD)
                 
-            if (selected2 == "Gasoline"):
-                tahun = st.number_input("Tahun Pembuatan kendaraan (s/d 2023):", 0)
-                co = st.number_input("Nilai CO kendaraan (0 - 10):", 0)
-                hc = st.number_input("Nilai HC kendaraan (0 - 10000):", 0)
-                hasilG = tahun+co+hc
-                hitungG = st.button("PREDIKSI", hasilG)
+            if (selected2 == "Gasoline" and selected_option == "By ML"):
+                co = st.number_input("Nilai CO kendaraan (0 - 10):")
+                hc = st.number_input("Nilai HC kendaraan (0 - 10000):")
+                usia = st.number_input("Usia Kendaraan:")
+                
+                # Membuat dictionary dengan data awal
+                data = {
+                    'CO': [0, 10],
+                    'HC': [0, 10000],
+                    'Usia': [0, 73]
+                }
+
+                # Membuat data frame
+                dfx = pd.DataFrame(data)
+                new = {'CO': co, 'HC': hc, 'Usia': usia}
+                # Append the new row to the data frame
+                dfx = dfx.append(new, ignore_index=True)
+                
+                # print(dfx)
+                #Normalisasi data uji
+                # Create an instance of the StandardScaler
+                scaler = MinMaxScaler()
+
+                # Fit the scaler to the data
+                scaler.fit(dfx)
+
+                # Transform the data
+                x_scaled_gasoline = scaler.transform(dfx)
+                
+                # print(x_scaled_gasoline)
+
+                dfy = pd.DataFrame({'regrating': [0, 11]})
+                # Fit the scaler to the data
+                scaler.fit(dfy)
+                
+                # Load the model
+                model_path = 'D:\KP\Pelaksanaan\KEGIATAN KP\WEBSITE\Koefisien-Pajak-Website\model\model_gasoline.h5'
+                model_gasoline = load_model(model_path)
+                
+                #prediksi data
+                y_model_test = model_gasoline.predict(x_scaled_gasoline)
+                
+                # #inverse ke nilai normal
+                y_test_denorm = scaler.inverse_transform(y_model_test)
+                hasilG = y_test_denorm[-1][0]
+                
+                hitungG = st.button("PREDIKSI")
                 if hitungG:
                     st.write("Hasil prediksi nilai rating bahan bakar gasoline : ", hasilG)
     
@@ -77,13 +164,13 @@ def login():
 
 def main():
     # Initialize the 'is_logged_in' session state variable
-    if 'is_logged_in' not in st.session_state:
-        st.session_state.is_logged_in = False
+    # if 'is_logged_in' not in st.session_state:
+    #     st.session_state.is_logged_in = False
 
-    if not st.session_state.is_logged_in:
-        login()
-    else:
-        home()
+    # if not st.session_state.is_logged_in:
+    #     login()
+    # else:
+    home()
 
 if __name__ == '__main__':
     main()
