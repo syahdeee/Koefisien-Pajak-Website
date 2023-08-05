@@ -1,22 +1,47 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from sklearn.preprocessing import MinMaxScaler
+from optimasi import optimasi_func
+from optimasi import normalisasi_input
+from optimasi import normalisasi_output
+from optimasi import get_best_hyperparameter
+from optimasi import get_model
+from optimasi import print_model_summary
+
+import tensorflow as tf
+import tensorflow_addons as tfa
 from tensorflow.keras.models import load_model
 import pandas as pd
 
+# Provide the path to your H5 model file
+model_path_diesel = 'D:\KP\Pelaksanaan\KEGIATAN KP\WEBSITE\Koefisien-Pajak-Website\model\model_diesel.h5'
+model_path_gasoline = 'D:\KP\Pelaksanaan\KEGIATAN KP\WEBSITE\Koefisien-Pajak-Website\model\model_gasoline.h5'
+
+# Define the custom R-squared metric function using tfa.metrics.RSquare()
+def custom_r_square(y_true, y_pred):
+    # Create an instance of RSquare metric
+    rsquare_metric = tfa.metrics.RSquare()
+
+    # Call update_state() to update the metric's state with the current y_true and y_pred
+    rsquare_metric.update_state(y_true, y_pred)
+
+    # Return the result using result() method of the RSquare metric
+    return rsquare_metric.result()
+
+# Register the custom R-squared metric function
+tf.keras.utils.get_custom_objects().update({'custom_r_square': custom_r_square})
+
+# Load the model
+model_diesel = load_model(model_path_diesel, custom_objects={"custom_r_square": custom_r_square})
+# Load the model
+model_gasoline = load_model(model_path_gasoline, custom_objects={"custom_r_square": custom_r_square})
 
 def home():
     # st.sidebar.title(f"Hello {nama}")
     with st.sidebar:
-        selected = option_menu(None, ["Home", 'Prediksi', "Optimasi dan Learning"],
+        selected = option_menu(None, ["Prediksi", "Optimasi dan Learning", "Visualisasi Heatmap", "Feature Selection", "Ensemble Learning"],
         icons=['house', 'graph-up', 'gear-fill'], menu_icon="cast", default_index=0)
-
-    if (selected == 'Home'):
-        st.image("logo.png", None, use_column_width=True)
-        st.markdown("<h1 style='font-size:40px;font-family: 'Courier New';'>SELAMAT DATANG,</h1>", unsafe_allow_html=True)
-        st.markdown("<h2 style=''>Web Aplikasi Prediksi Koefisien Pajak dan Pemodelan untuk Data Engineering</h2>", unsafe_allow_html=True)
-        st.markdown("<h6 style=''>By : PSTB - BRIN team</h6>", unsafe_allow_html=True)
-
+        
     if (selected == 'Prediksi'):
         selected_option = st.sidebar.radio("Pilih metode prediksi :", ("By script", "By ML"))
         with st.container():
@@ -57,10 +82,6 @@ def home():
                 dfy = pd.DataFrame({'regrating': [0, 6]})
                 # Fit the scaler to the data
                 scaler.fit(dfy)
-                
-                # Load the model
-                model_path = 'D:\KP\Pelaksanaan\KEGIATAN KP\WEBSITE\Koefisien-Pajak-Website\model\model_diesel.h5'
-                model_diesel = load_model(model_path)
                 
                 #prediksi data
                 y_model_test = model_diesel.predict(x_scaled)
@@ -108,10 +129,6 @@ def home():
                 # Fit the scaler to the data
                 scaler.fit(dfy)
                 
-                # Load the model
-                model_path = 'D:\KP\Pelaksanaan\KEGIATAN KP\WEBSITE\Koefisien-Pajak-Website\model\model_gasoline.h5'
-                model_gasoline = load_model(model_path)
-                
                 #prediksi data
                 y_model_test = model_gasoline.predict(x_scaled_gasoline)
                 
@@ -123,19 +140,22 @@ def home():
                 if hitungG:
                     st.write("Hasil prediksi nilai rating bahan bakar gasoline : ", hasilG)
     
-    if (selected == 'Optimasi Hyperparameter'):
+    if (selected == 'Optimasi dan Learning'):
         with st.container():
-            st.markdown("<h5 style='text-align : center;'>Optimasi Hyperparameter dengan Multilayer Perceptron (MLP) dan Gaussian Process Regression (GPR)</h5>", unsafe_allow_html=True)
-            ## horizontal Menu
-            selected2 = option_menu(None, ["MLP", "GPR"], 
-            icons=['1-circle-fill', '2-circle-fill'], 
-            menu_icon="cast", default_index=0, orientation="horizontal")
-                
-            if (selected2 == "Diesel"):
-                st.title("MLP")
-            if (selected2 == "Gasoline"):
-                st.title("GPR")
-                
+            st.markdown("<h5 style='text-align : center;'>Optimasi Hyperparameter dengan Multilayer Perceptron (MLP)</h5>", unsafe_allow_html=True)
+            
+            optimasi_func()
+             
+
+def landing_page():
+    st.image("logo.png", None, use_column_width=True)
+    st.markdown("<h1 style='font-size:40px;font-family: 'Courier New';'>SELAMAT DATANG,</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style=''>Web Aplikasi Pemodelan untuk Data Engineering</h2>", unsafe_allow_html=True)
+    st.markdown("<h6 style=''>By : PSTB - BRIN team</h6>", unsafe_allow_html=True)
+    # click_login = st.button("Login Disini")
+    # if click_login:
+    #     login()
+    login()
                  
 def login():
     names = ["Audrina Angela", "Arlo Amstrong"]
@@ -144,7 +164,7 @@ def login():
 
     # print([names[0]])
 
-    st.title('Login Page')
+    # st.title('Login Page')
     # Add a login form
 
     username = st.text_input('Username')
@@ -162,13 +182,15 @@ def login():
 
 def main():
     # Initialize the 'is_logged_in' session state variable
-    # if 'is_logged_in' not in st.session_state:
-    #     st.session_state.is_logged_in = False
+    if 'is_logged_in' not in st.session_state:
+        st.session_state.is_logged_in = False
 
-    # if not st.session_state.is_logged_in:
-    #     login()
-    # else:
-    home()
+    if not st.session_state.is_logged_in:
+        landing_page()
+    else:
+        home()
+   
+    # landing_page()
 
 if __name__ == '__main__':
     main()
